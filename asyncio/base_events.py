@@ -181,6 +181,8 @@ class Server(events.AbstractServer):
 
 class BaseEventLoop(events.AbstractEventLoop):
 
+    _warnings = warnings
+
     def __init__(self):
         self._timer_cancelled_count = 0
         self._closed = False
@@ -383,7 +385,8 @@ class BaseEventLoop(events.AbstractEventLoop):
     if compat.PY34:
         def __del__(self):
             if not self.is_closed():
-                warnings.warn("unclosed event loop %r" % self, ResourceWarning)
+                self._warnings.warn(
+                    "unclosed event loop %r" % self, ResourceWarning)
                 if not self.is_running():
                     self.close()
 
@@ -1277,7 +1280,7 @@ class BaseEventLoop(events.AbstractEventLoop):
 
         if enabled:
             if current_wrapper not in (None, wrapper):
-                warnings.warn(
+                self._warnings.warn(
                     "loop.set_debug(True): cannot set debug coroutine "
                     "wrapper; another wrapper is already set %r" %
                     current_wrapper, RuntimeWarning)
@@ -1286,7 +1289,7 @@ class BaseEventLoop(events.AbstractEventLoop):
                 self._coroutine_wrapper_set = True
         else:
             if current_wrapper not in (None, wrapper):
-                warnings.warn(
+                self._warnings.warn(
                     "loop.set_debug(False): cannot unset debug coroutine "
                     "wrapper; another wrapper was set %r" %
                     current_wrapper, RuntimeWarning)
