@@ -133,6 +133,8 @@ class PipeHandle:
 
     The IOCP event loop can use these instead of socket objects.
     """
+    _warnings = warnings
+
     def __init__(self, handle):
         self._handle = handle
 
@@ -159,7 +161,7 @@ class PipeHandle:
 
     def __del__(self):
         if self._handle is not None:
-            warnings.warn("unclosed %r" % self, ResourceWarning)
+            self._warnings.warn("unclosed %r" % self, ResourceWarning)
             self.close()
 
     def __enter__(self):

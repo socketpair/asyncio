@@ -22,6 +22,8 @@ class _ProactorBasePipeTransport(transports._FlowControlMixin,
                                  transports.BaseTransport):
     """Base class for pipe and socket transports."""
 
+    _warnings = warnings
+
     def __init__(self, loop, sock, protocol, waiter=None,
                  extra=None, server=None):
         super().__init__(extra, loop)
@@ -86,7 +88,8 @@ class _ProactorBasePipeTransport(transports._FlowControlMixin,
     if compat.PY34:
         def __del__(self):
             if self._sock is not None:
-                warnings.warn("unclosed transport %r" % self, ResourceWarning)
+                self._warnings.warn("unclosed transport %r" % self,
+                                    ResourceWarning)
                 self.close()
 
     def _fatal_error(self, exc, message='Fatal error on pipe transport'):

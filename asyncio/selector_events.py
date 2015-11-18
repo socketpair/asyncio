@@ -504,6 +504,7 @@ class _SelectorTransport(transports._FlowControlMixin,
     # is not called (see _SelectorSslTransport which may start by raising an
     # exception)
     _sock = None
+    _warnings = warnings
 
     def __init__(self, loop, sock, protocol, extra=None, server=None):
         super().__init__(extra, loop)
@@ -574,7 +575,8 @@ class _SelectorTransport(transports._FlowControlMixin,
     if compat.PY34:
         def __del__(self):
             if self._sock is not None:
-                warnings.warn("unclosed transport %r" % self, ResourceWarning)
+                self._warnings.warn("unclosed transport %r" % self,
+                                    ResourceWarning)
                 self._sock.close()
 
     def _fatal_error(self, exc, message='Fatal error on transport'):

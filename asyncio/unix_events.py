@@ -298,6 +298,7 @@ else:
 class _UnixReadPipeTransport(transports.ReadTransport):
 
     max_size = 256 * 1024  # max bytes we read in one event loop iteration
+    _warnings = warnings
 
     def __init__(self, loop, pipe, protocol, waiter=None, extra=None):
         super().__init__(extra)
@@ -378,7 +379,8 @@ class _UnixReadPipeTransport(transports.ReadTransport):
     if compat.PY34:
         def __del__(self):
             if self._pipe is not None:
-                warnings.warn("unclosed transport %r" % self, ResourceWarning)
+                self._warnings.warn("unclosed transport %r" % self,
+                                    ResourceWarning)
                 self._pipe.close()
 
     def _fatal_error(self, exc, message='Fatal error on pipe transport'):
@@ -412,6 +414,8 @@ class _UnixReadPipeTransport(transports.ReadTransport):
 
 class _UnixWritePipeTransport(transports._FlowControlMixin,
                               transports.WriteTransport):
+
+    _warnings = warnings
 
     def __init__(self, loop, pipe, protocol, waiter=None, extra=None):
         super().__init__(extra, loop)
@@ -567,7 +571,8 @@ class _UnixWritePipeTransport(transports._FlowControlMixin,
     if compat.PY34:
         def __del__(self):
             if self._pipe is not None:
-                warnings.warn("unclosed transport %r" % self, ResourceWarning)
+                self._warnings.warn("unclosed transport %r" % self,
+                                    ResourceWarning)
                 self._pipe.close()
 
     def abort(self):

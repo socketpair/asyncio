@@ -12,6 +12,8 @@ from .log import logger
 
 class BaseSubprocessTransport(transports.SubprocessTransport):
 
+    _warnings = warnings
+
     def __init__(self, loop, protocol, args, shell,
                  stdin, stdout, stderr, bufsize,
                  waiter=None, extra=None, **kwargs):
@@ -122,7 +124,8 @@ class BaseSubprocessTransport(transports.SubprocessTransport):
     if compat.PY34:
         def __del__(self):
             if not self._closed:
-                warnings.warn("unclosed transport %r" % self, ResourceWarning)
+                self._warnings.warn("unclosed transport %r" % self,
+                                    ResourceWarning)
                 self.close()
 
     def get_pid(self):

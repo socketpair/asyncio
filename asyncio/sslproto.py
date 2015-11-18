@@ -293,6 +293,8 @@ class _SSLPipe(object):
 class _SSLProtocolTransport(transports._FlowControlMixin,
                             transports.Transport):
 
+    _warnings = warnings
+
     def __init__(self, loop, ssl_protocol, app_protocol):
         self._loop = loop
         # SSLProtocol instance
@@ -324,7 +326,8 @@ class _SSLProtocolTransport(transports._FlowControlMixin,
     if compat.PY34:
         def __del__(self):
             if not self._closed:
-                warnings.warn("unclosed transport %r" % self, ResourceWarning)
+                self._warnings.warn("unclosed transport %r" % self,
+                                    ResourceWarning)
                 self.close()
 
     def pause_reading(self):
