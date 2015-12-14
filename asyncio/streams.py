@@ -324,6 +324,10 @@ class StreamReader:
     def __init__(self, limit=_DEFAULT_LIMIT, loop=None):
         # The line length limit is  a security feature;
         # it also doubles as half the buffer limit.
+
+        if limit <= 0:
+            raise ValueError('Limit cannot be <= 0')
+
         self._limit = limit
         if loop is None:
             self._loop = events.get_event_loop()
@@ -475,22 +479,22 @@ class StreamReader:
         return line
 
     @coroutine
-    def readuntil(self, separator=b'\n', limit=None):
+    def readuntil(self, separator=b'\n'):
         """Read chunk of data from the stream until `separator` is found.
 
         On success, chunk and its separator will be removed from internal buffer
         (i.e. consumed). Returned chunk will include separator at the end.
 
-        If limit is not specified (or None) default stream limit is used. Limit
-        means maximal length of chunk that is returned not counting separator.
+        Configured stream limit is used to check result. Limit means maximal
+        length of chunk that can be returned, not counting the separator.
 
         If EOF occurs and complete separator still not found,
         IncompleteReadError(<partial data>, None) will be raised and internal
         buffer becomes empty. This partial data may contain a partial separator.
 
         If chunk cannot be read due to overlimit, LimitOverrun will be raised
-        and data will be left in internal buffer, so it can be read again, say,
-        with bigger limit, or using another read functions.
+        and data will be left in internal buffer, so it can be read again, in
+        some different way.
 
         If stream was paused, this function will automatically resume it if
         needed.
@@ -498,12 +502,6 @@ class StreamReader:
         seplen = len(separator)
         if seplen == 0:
             raise ValueError('Separator should be at least one-byte string')
-
-        if limit is None:
-            limit = self._limit
-
-        if limit <= 0:
-            raise ValueError('Limit should be > 0')
 
         if self._exception is not None:
             raise self._exception
@@ -534,7 +532,7 @@ class StreamReader:
                     break
                 # see upper comment for explanation
                 offset = buflen + 1 - seplen
-                if offset > limit:
+                if offset > self._limit:
                     raise LimitOverrun('Separator is not found, and chunk exceed the limit', offset)
 
             if self._eof:
@@ -546,7 +544,7 @@ class StreamReader:
             # _wait_for_data() will resume reading if stream was paused.
             yield from self._wait_for_data('readuntil')
 
-        if isep > limit:
+        if isep > self._limit:
             raise LimitOverrun('Separator is found, but chunk is longer than limit', isep)
 
         chunk = self._buffer[:isep + seplen]

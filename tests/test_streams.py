@@ -203,6 +203,20 @@ class StreamReaderTests(test_utils.TestCase):
         self.assertRaises(
             ValueError, self.loop.run_until_complete, stream.read(2))
 
+    def test_invalid_limit(self):
+        with self.assertRaisesRegexp(ValueError, 'imit'):
+            asyncio.StreamReader(limit=0, loop=self.loop)
+
+        with self.assertRaisesRegexp(ValueError, 'imit'):
+            asyncio.StreamReader(limit=-1, loop=self.loop)
+
+    def test_read_limit(self):
+        stream = asyncio.StreamReader(limit=3, loop=self.loop)
+        stream.feed_data(b'chunk')
+        data = self.loop.run_until_complete(stream.read(5))
+        self.assertEqual(b'chunk', data)
+        self.assertEqual(b'', stream._buffer)
+
     def test_readline(self):
         # Read one line. 'readline' will need to wait for the data
         # to come from 'cb'
@@ -363,10 +377,6 @@ class StreamReaderTests(test_utils.TestCase):
         stream = asyncio.StreamReader(loop=self.loop)
         with self.assertRaisesRegexp(ValueError, 'eparator'):
             self.loop.run_until_complete(stream.readuntil(separator=b''))
-        with self.assertRaisesRegexp(ValueError, 'imit'):
-            self.loop.run_until_complete(stream.readuntil(separator=b'\n', limit=0))
-        with self.assertRaisesRegexp(ValueError, 'imit'):
-            self.loop.run_until_complete(stream.readuntil(separator=b'\n', limit=-1))
 
     def test_readuntil_multi_chunks(self):
         stream = asyncio.StreamReader(loop=self.loop)
@@ -433,16 +443,16 @@ class StreamReaderTests(test_utils.TestCase):
         self.assertEqual(b'', stream._buffer)
 
     def test_readuntil_limit_found_sep(self):
-        stream = asyncio.StreamReader(loop=self.loop)
+        stream = asyncio.StreamReader(loop=self.loop, limit=3)
         stream.feed_data(b'some dataAA')
 
         with self.assertRaisesRegexp(asyncio.LimitOverrun, 'not found') as cm:
-            self.loop.run_until_complete(stream.readuntil(b'AAA', 3))
+            self.loop.run_until_complete(stream.readuntil(b'AAA'))
         self.assertEqual(b'some dataAA', stream._buffer)
 
         stream.feed_data(b'A')
         with self.assertRaisesRegexp(asyncio.LimitOverrun, 'is found') as cm:
-            self.loop.run_until_complete(stream.readuntil(b'AAA', 3))
+            self.loop.run_until_complete(stream.readuntil(b'AAA'))
         self.assertEqual(b'some dataAAA', stream._buffer)
 
     def test_readexactly_zero_or_less(self):
@@ -474,6 +484,13 @@ class StreamReaderTests(test_utils.TestCase):
         data = self.loop.run_until_complete(read_task)
         self.assertEqual(self.DATA + self.DATA, data)
         self.assertEqual(self.DATA, stream._buffer)
+
+    def test_readexactly_limit(self):
+        stream = asyncio.StreamReader(limit=3, loop=self.loop)
+        stream.feed_data(b'chunk')
+        data = self.loop.run_until_complete(stream.readexactly(5))
+        self.assertEqual(b'chunk', data)
+        self.assertEqual(b'', stream._buffer)
 
     def test_readexactly_eof(self):
         # Read exact number of bytes (eof).
