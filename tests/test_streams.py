@@ -386,12 +386,6 @@ class StreamReaderTests(test_utils.TestCase):
         self.assertEqual(b'lineAAA', data)
         self.assertEqual(b'xxx', stream._buffer)
 
-        stream.feed_data(b'YYY')
-        data = self.loop.run_until_complete(stream.readuntil(b'YYY', withseparator=False))
-        self.assertEqual(b'xxx', data)
-        self.assertEqual(b'', stream._buffer)
-
-
     def test_readuntil_multi_chunks_1(self):
         stream = asyncio.StreamReader(loop=self.loop)
 
@@ -412,11 +406,6 @@ class StreamReaderTests(test_utils.TestCase):
         stream.feed_data(b'aaa')
         data = self.loop.run_until_complete(stream.readuntil(b'aaa'))
         self.assertEqual(b'aaa', data)
-        self.assertEqual(b'', stream._buffer)
-
-        stream.feed_data(b'aaa')
-        data = self.loop.run_until_complete(stream.readuntil(b'aaa', withseparator=False))
-        self.assertEqual(b'', data)
         self.assertEqual(b'', stream._buffer)
 
         stream.feed_data(b'Xaaa')

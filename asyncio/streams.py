@@ -443,16 +443,13 @@ class StreamReader:
             self._waiter = None
 
     @coroutine
-    def readline(self, limit=None):
+    def readline(self):
         """Read chunk of data from the stream until newline (b'\n') is found.
 
         On success, return chunk that ends with newline. If only partial
         line can be read due to EOF, return incomplete line without
         terminating newline. When EOF was reached while no bytes read, empty
         bytes object is returned.
-
-        `limit` limits length of the line with specified value. If not specified
-        or None, default limit (configured at stream creation) is imposed.
 
         If limit is reached, ValueError will be raised. In that case, if
         newline was found, complete line including newline will be removed
@@ -465,7 +462,7 @@ class StreamReader:
         sep = b'\n'
         seplen = len(sep)
         try:
-            line = yield from self.readuntil(sep, limit=limit, withseparator=True)
+            line = yield from self.readuntil(sep)
         except IncompleteReadError as e:
             return e.partial
         except LimitOverrun as e:
@@ -478,13 +475,11 @@ class StreamReader:
         return line
 
     @coroutine
-    def readuntil(self, separator=b'\n', limit=None, withseparator=True):
+    def readuntil(self, separator=b'\n', limit=None):
         """Read chunk of data from the stream until `separator` is found.
 
-        On success, data and its separator is removed from internal buffer
-        (i.e. consumed). Returned value depends on `withseparator` argument.
-        If True (by default), return chunk including separator at the end. Else,
-        return received data without separator at the end.
+        On success, chunk and its separator will be removed from internal buffer
+        (i.e. consumed). Returned chunk will include separator at the end.
 
         If limit is not specified (or None) default stream limit is used. Limit
         means maximal length of chunk that is returned not counting separator.
@@ -554,10 +549,7 @@ class StreamReader:
         if isep > limit:
             raise LimitOverrun('Separator is found, but chunk is longer than limit', isep)
 
-        if withseparator:
-            chunk = self._buffer[:isep + seplen]
-        else:
-            chunk = self._buffer[:isep]
+        chunk = self._buffer[:isep + seplen]
         del self._buffer[:isep + seplen]
         self._maybe_resume_transport()
         return bytes(chunk)
