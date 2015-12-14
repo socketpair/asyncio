@@ -3,7 +3,7 @@
 __all__ = ['StreamReader', 'StreamWriter', 'StreamReaderProtocol',
            'open_connection', 'start_server',
            'IncompleteReadError',
-           'LimitOverrun',
+           'LimitOverrunError',
            ]
 
 import socket
@@ -36,9 +36,17 @@ class IncompleteReadError(EOFError):
         self.partial = partial
         self.expected = expected
 
-class LimitOverrun(Exception):
+
+class LimitOverrunError(Exception):
+    """
+    Data read until separator is too long. Attributes:
+
+    - message: textual description what was actually happen.
+    - consumed: count of bytes that is bigger than allowed limit.
+    """
     def __init__(self, message, consumed):
         super().__init__(message)
+        self.message = message
         self.consumed = consumed
 
 
@@ -469,7 +477,7 @@ class StreamReader:
             line = yield from self.readuntil(sep)
         except IncompleteReadError as e:
             return e.partial
-        except LimitOverrun as e:
+        except LimitOverrunError as e:
             if self._buffer.startswith(sep, e.consumed):
                 del self._buffer[:e.consumed + seplen]
             else:
@@ -492,7 +500,7 @@ class StreamReader:
         IncompleteReadError(<partial data>, None) will be raised and internal
         buffer becomes empty. This partial data may contain a partial separator.
 
-        If chunk cannot be read due to overlimit, LimitOverrun will be raised
+        If chunk cannot be read due to overlimit, LimitOverrunError will be raised
         and data will be left in internal buffer, so it can be read again, in
         some different way.
 
@@ -533,7 +541,7 @@ class StreamReader:
                 # see upper comment for explanation
                 offset = buflen + 1 - seplen
                 if offset > self._limit:
-                    raise LimitOverrun('Separator is not found, and chunk exceed the limit', offset)
+                    raise LimitOverrunError('Separator is not found, and chunk exceed the limit', offset)
 
             if self._eof:
                 chunk = bytes(self._buffer)
@@ -545,7 +553,7 @@ class StreamReader:
             yield from self._wait_for_data('readuntil')
 
         if isep > self._limit:
-            raise LimitOverrun('Separator is found, but chunk is longer than limit', isep)
+            raise LimitOverrunError('Separator is found, but chunk is longer than limit', isep)
 
         chunk = self._buffer[:isep + seplen]
         del self._buffer[:isep + seplen]

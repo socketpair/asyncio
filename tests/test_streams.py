@@ -446,12 +446,12 @@ class StreamReaderTests(test_utils.TestCase):
         stream = asyncio.StreamReader(loop=self.loop, limit=3)
         stream.feed_data(b'some dataAA')
 
-        with self.assertRaisesRegexp(asyncio.LimitOverrun, 'not found') as cm:
+        with self.assertRaisesRegexp(asyncio.LimitOverrunError, 'not found') as cm:
             self.loop.run_until_complete(stream.readuntil(b'AAA'))
         self.assertEqual(b'some dataAA', stream._buffer)
 
         stream.feed_data(b'A')
-        with self.assertRaisesRegexp(asyncio.LimitOverrun, 'is found') as cm:
+        with self.assertRaisesRegexp(asyncio.LimitOverrunError, 'is found') as cm:
             self.loop.run_until_complete(stream.readuntil(b'AAA'))
         self.assertEqual(b'some dataAAA', stream._buffer)
 
